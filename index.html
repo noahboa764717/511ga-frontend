@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pickens County Traffic Camera</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body {
       background-color: #121212;
@@ -23,19 +22,30 @@
       border-radius: 12px;
       padding: 20px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-      max-width: 640px;
+      max-width: 680px;
       width: 100%;
       text-align: center;
     }
-    video {
+    .video-container {
+      position: relative;
       width: 100%;
-      height: auto;
+      padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+      height: 0;
       border-radius: 8px;
-      background-color: #000;
-      outline: none;
+      overflow: hidden;
+      background: #000;
+    }
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
     }
     h2 {
       margin-top: 0;
+      margin-bottom: 14px;
       font-size: 1.25rem;
       color: #e0e0e0;
     }
@@ -45,37 +55,11 @@
 
 <div class="card">
   <h2>PICK-CCTV-0020 Live Feed</h2>
-  <video id="videoPlayer" controls autoplay muted playsinline></video>
+  <div class="video-container">
+    <!-- Embeds the direct 511GA camera page view -->
+    <iframe src="https://511ga.org/map/Cctv/19637" allowfullscreen></iframe>
+  </div>
 </div>
-
-<script>
-  // Points directly to your Render backend—no tokens needed on the frontend!
-  const streamUrl = 'https://five11ga-backend.onrender.com/stream.m3u8';
-  const video = document.getElementById('videoPlayer');
-
-  if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(streamUrl);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      video.play().catch(e => console.log('Autoplay blocked:', e));
-    });
-
-    // Auto-recover if a stream segment drops or token cycles
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      if (data.fatal) {
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          hls.startLoad();
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          hls.recoverMediaError();
-        }
-      }
-    });
-  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = streamUrl;
-    video.addEventListener('loadedmetadata', () => video.play());
-  }
-</script>
 
 </body>
 </html>
