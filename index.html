@@ -2,57 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pickens CCTV Live Feed</title>
+  <title>Pickens CCTV Live Stream</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    body {
-      background-color: #121212;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-    .video-card {
-      background: #1e1e1e;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      width: 90%;
-      max-width: 720px;
-    }
-    video {
-      width: 100%;
-      border-radius: 8px;
-    }
-    h2 {
-      margin-top: 0;
-      font-size: 1.2rem;
-    }
+    body { background: #121212; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+    .card { max-width: 640px; margin: 0 auto; background: #1e1e1e; padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    video { width: 100%; border-radius: 4px; background: #000; }
+    h2 { margin-top: 0; font-size: 1.2rem; }
   </style>
 </head>
 <body>
 
-<div class="video-card">
-  <h2>Live Traffic Stream (Pickens CCTV)</h2>
+<div class="card">
+  <h2>Pickens CCTV Live Feed</h2>
   <video id="video" controls autoplay muted playsinline></video>
 </div>
 
 <script>
   const video = document.getElementById('video');
-  
-  // Replace with your actual Render URL:
-  const streamUrl = 'https://my-511ga-proxy.onrender.com/stream.m3u8';
+  // Directly point to your automated Render proxy endpoint
+  const streamUrl = 'https://five11ga-backend.onrender.com/stream.m3u8';
 
   if (Hls.isSupported()) {
-    const hls = new Hls({
-      manifestLoadingTimeOut: 10000,
-      manifestLoadingMaxRetry: 5
-    });
+    const hls = new Hls();
     hls.loadSource(streamUrl);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
