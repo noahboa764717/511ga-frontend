@@ -2,36 +2,160 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pickens CCTV Live Stream</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickens CCTV Live View</title>
+  <!-- Hls.js library for streaming HLS video in standard browsers -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    body { background: #121212; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-    .card { max-width: 640px; margin: 0 auto; background: #1e1e1e; padding: 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-    video { width: 100%; border-radius: 4px; background: #000; }
-    h2 { margin-top: 0; font-size: 1.2rem; }
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+    }
+    .card {
+      background: #1e1e1e;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      max-width: 640px;
+      width: 100%;
+      text-align: center;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background-color: #000;
+      outline: none;
+    }
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #fff;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+    }
+    button {
+      padding: 10px 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Pickens CCTV Live Feed</h2>
-  <video id="video" controls autoplay muted playsinline></video>
+  <h2>PICK-CCTV-0020 Live Stream</h2>
+  <video id="videoPlayer" controls autoplay muted playsinline></video>
+  
+  <div class="controls">
+    <input type="text" id="tokenInput" placeholder="Paste fresh JWT token here (eyJ...)">
+    <button onclick="loadStream()">Load / Update Stream</button>
+  </div>
+  <div class="status" id="statusText">Status: Waiting for token...</div>
 </div>
 
 <script>
-  const video = document.getElementById('video');
-  // Directly point to your automated Render proxy endpoint
-  const streamUrl = 'https://five11ga-backend.onrender.com/stream.m3u8';
+  let hls;
+  const BACKEND_URL = 'https://five11ga-backend.onrender.com/stream.m3u8';
 
-  if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(streamUrl);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = streamUrl;
-    video.addEventListener('loadedmetadata', () => video.play());
+  function loadStream() {
+    const token = document.getElementById('tokenInput').value.trim();
+    const statusText = document.getElementById('statusText');
+    const video = document.getElementById('videoPlayer');
+
+    if (!token) {
+      alert('Please paste a valid JWT token.');
+      return;
+    }
+
+    statusText.innerText = 'Status: Connecting to proxy...';
+    const streamUrl = `${BACKEND_URL}?token=${encodeURIComponent(token)}`;
+
+    // Clean up existing HLS instance if present
+    if (hls) {
+      hls.destroy();
+    }
+
+    if (Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        statusText.innerText = 'Status: Streaming live';
+        video.play().catch(e => console.log('Autoplay prevented:', e));
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              statusText.innerText = 'Status: Network error / Token may have expired.';
+              console.error('Fatal network error encountered, trying to restart media...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              statusText.innerText = 'Status: Media error, recovering...';
+              hls.recoverMediaError();
+              break;
+            default:
+              statusText.innerText = 'Status: Fatal error, token update required.';
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari / iOS)
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        statusText.innerText = 'Status: Streaming live (Native)';
+        video.play();
+      });
+    } else {
+      statusText.innerText = 'Status: HLS is not supported in this browser.';
+    }
   }
+
+  // Convenience: Automatically populate and load if a ?token= parameter is in the page URL
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    if (urlToken) {
+      document.getElementById('tokenInput').value = urlToken;
+      loadStream();
+    }
+  });
 </script>
 
 </body>
